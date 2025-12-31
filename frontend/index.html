@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContentGuard AI - Final Demo</title>
+    <style>
+        .generated-img, #generationOutput img {
+            width: 100%;
+            max-width: 1024px;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        @media (max-width: 768px) {
+            .generated-img, #generationOutput img {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            padding: 30px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.98);
+            color: #1f2937;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #4f46e5;
+            font-size: 3em;
+            margin-bottom: 40px;
+        }
+        .section {
+            background: #fff;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #4f46e5;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+        }
+        .stat-item {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            color: white;
+        }
+        .stat-value {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .upload-mode {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #4f46e5;
+            background: white;
+            color: #4f46e5;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
+        }
+        .mode-btn.active {
+            background: #4f46e5;
+            color: white;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+            margin: 15px 0;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        .file-input-label {
+            display: block;
+            padding: 18px;
+            background: #e0e7ff;
+            color: #4f46e5;
+            border: 2px dashed #4f46e5;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+        .file-input-label:hover {
+            background: #c3dafe;
+            transform: translateY(-3px);
+        }
+        .file-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .preview-item {
+            position: relative;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 8px;
+            background: #f9fafb;
+        }
+        .preview-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .preview-item .filename {
+            font-size: 0.8em;
+            margin-top: 5px;
+            word-break: break-all;
+            color: #6b7280;
+        }
+        .preview-item .remove-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e5e7eb;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            overflow-x: auto;
+            display: block;
+        }
+        .results-table table {
+            width: 100%;
+        }
+        .results-table th {
+            background: #4f46e5;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+        .results-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .results-table tr:hover {
+            background: #f9fafb;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status-review {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-error {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        .risk-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .risk-critical {
+            background: #dc2626;
+            color: white;
+        }
+        .risk-high {
+            background: #f59e0b;
+            color: white;
+        }
+        .risk-medium {
+            background: #eab308;
+            color: white;
+        }
+        .risk-low {
+            background: #10b981;
+            color: white;
+        }
+        .risk-minimal {
+            background: #059669;
+            color: white;
+        }
+        button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        textarea {
+            width: 100%;
+            padding: 18px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 1.1em;
+            resize: vertical;
+            min-height: 120px;
+        }
+        .result {
+            margin-top: 25px;
+            padding: 25px;
+            background: #f0fdf4;
+            border-radius: 16px;
+            border-left: 8px solid #10b981;
+        }
+        .result.fake {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        .result.review {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+        }
+        .fake { color: #ef4444; font-weight: bold; font-size: 1.5em; }
+        .real { color: #10b981; font-weight: bold; font-size: 1.5em; }
+        img {
+            max-width: 100%;
+            border-radius: 16px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .batch-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f0f9ff;
+            border-radius: 12px;
+        }
+        .batch-stat {
+            text-align: center;
+        }
+        .batch-stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .batch-stat-label {
+            font-size: 0.9em;
+            color: #6b7280;
+        }
+        .image-name {
+            font-weight: 600;
+            color: #1f2937;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ContentGuard AI</h1>
+
+        <!-- Real-time Statistics -->
+        <div class="section">
+            <h2>Real-time Statistics</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div>Total Analyzed</div>
+                    <div class="stat-value" id="total">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Approved</div>
+                    <div class="stat-value" id="approved">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Rejected</div>
+                    <div class="stat-value" id="rejected">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Generated</div>
+                    <div class="stat-value" id="generated">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Moderation -->
+        <div class="section">
+            <h2>Image Moderation</h2>
+            <div class="upload-mode">
+                <button class="mode-btn active" onclick="setUploadMode('single', event)">Single Image</button>
+                <button class="mode-btn" onclick="setUploadMode('batch', event)">Batch (Multiple Images)</button>
+            </div>
+
+            <div id="singleUploadSection">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept="image/*" />
+                    <label for="fileInput" class="file-input-label">Choose an Image to Analyze</label>
+                </div>
+                <button onclick="uploadFile()">Analyze Image</button>
+                <div id="moderationResult"></div>
+            </div>
+
+            <div id="batchUploadSection" style="display: none;">
+                <div class="file-input-wrapper">
+                    <input type="file" id="batchFileInput" accept="image/*" multiple />
+                    <label for="batchFileInput" class="file-input-label">Choose Multiple Images (Ctrl/Cmd + Click)</label>
+                </div>
+                <div class="file-preview" id="filePreview"></div>
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill">0%</div></div>
+                </div>
+                <button id="batchAnalyzeBtn" onclick="uploadBatch()" disabled>Analyze Batch</button>
+                <div id="batchStats"></div>
+                <div id="batchResults"></div>
+            </div>
+        </div>
+
+        <!-- AI Image Generation (1 à 4 images) -->
+        <div class="section">
+            <h2>AI Image Generation</h2>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px;"><strong>Prompt:</strong></label>
+                <textarea id="prompt" rows="4" placeholder="Describe the image you want to generate..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px;"></textarea>
+            </div>
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px;">
+                <label><strong>Number of images:</strong></label>
+                <select id="imageCount" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px;">
+                    <option value="1">1 image</option>
+                    <option value="2">2 images</option>
+                    <option value="3">3 images</option>
+                    <option value="4" selected>4 images</option>
+                </select>
+            </div>
+            <button onclick="startGenerate()" style="background: #16a34a; color: white; padding: 14px 0; width: 100%; border: none; border-radius: 12px; font-size: 18px; cursor: pointer;">
+                Generate Image(s)
+            </button>
+            <div id="generationOutput" style="margin-top: 20px;"></div>
+        </div>
+    </div> <!-- Fermeture du container -->
+
+    <script>
+        let selectedFiles = [];
+        let currentUploadMode = 'single';
+
+        function updateStats() {
+            fetch("/stats")
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById("total").textContent = data.total || 0;
+                    document.getElementById("approved").textContent = data.approved || 0;
+                    document.getElementById("rejected").textContent = data.rejected || 0;
+                    document.getElementById("generated").textContent = data.generated || 0;
+                })
+                .catch(() => {});
+        }
+        setInterval(updateStats, 2000);
+        updateStats();
+
+        function setUploadMode(mode, event) {
+            currentUploadMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('singleUploadSection').style.display = mode === 'single' ? 'block' : 'none';
+            document.getElementById('batchUploadSection').style.display = mode === 'batch' ? 'block' : 'none';
+        }
+
+        document.getElementById('batchFileInput').addEventListener('change', function(e) {
+            selectedFiles = Array.from(e.target.files);
+            displayFilePreview();
+            document.getElementById('batchAnalyzeBtn').disabled = selectedFiles.length === 0;
+        });
+
+        function displayFilePreview() {
+            const preview = document.getElementById('filePreview');
+            preview.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <div class="filename" title="${file.name}">${file.name}</div>
+                        <button class="remove-btn" onclick="removeFile(${index})">×</button>
+                    `;
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displayFilePreview();
+            document.getElementById('batchAnalyzeBtn').disabled = selectedFiles.length === 0;
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+            if (!file) return alert("Select an image");
+            const formData = new FormData();
+            formData.append("file", file);
+            const resultDiv = document.getElementById("moderationResult");
+            resultDiv.innerHTML = " Analysis in progress...";
+            try {
+                const response = await fetch("/upload", { method: "POST", body: formData });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    const r = data.result;
+                    const resultText = r.is_fake ? "Fake" : " Authentic";
+                    const resultClass = r.status === 'rejected' ? 'fake' : r.status === 'review' ? 'review' : 'real';
+                    resultDiv.innerHTML = `
+                        <div class="result ${resultClass}">
+                            <h3>Analysis Result</h3>
+                            <p><strong>File:</strong> <span class="image-name" title="${r.filename}">${r.filename}</span></p>
+                            <p><strong> Result:</strong> <span class="${r.is_fake ? 'fake' : 'real'}">${resultText}</span></p>
+                            <p><strong> Confidence:</strong> ${r.confidence}%</p>
+                            <p><strong> Probabilities:</strong> Real: ${r.prob_real}% | Fake: ${r.prob_fake}%</p>
+                            ${r.risk_assessment ? `
+                                <p><strong> Risk:</strong> <span class="risk-badge ${getRiskBadgeClass(r.risk_assessment.severity)}">${r.risk_assessment.severity}</span> </p>
+                                <p><strong>Recommendation:</strong> ${r.risk_assessment.recommendation}</p>
+                            ` : ''}
+                        </div>
+                    `;
+                    updateStats();
+                } else {
+                    resultDiv.innerHTML = `<p style="color:red">Error: ${data.error || 'Unknown'}</p>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p style="color:red"> Error: ${err.message}</p>`;
+            }
+        }
+
+        async function uploadBatch() {
+            if (selectedFiles.length === 0) return;
+            const formData = new FormData();
+            selectedFiles.forEach(file => formData.append('files', file));
+            const btn = document.getElementById('batchAnalyzeBtn');
+            btn.disabled = true;
+            btn.textContent = ' Analysis in progress...';
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '10%';
+            progressFill.textContent = '10%';
+            try {
+                const response = await fetch("/upload/batch", { method: "POST", body: formData });
+                progressFill.style.width = '50%';
+                progressFill.textContent = '50%';
+                const data = await response.json();
+                progressFill.style.width = '100%';
+                progressFill.textContent = '100%';
+                if (response.ok && data.success) {
+                    displayBatchStats(data);
+                    displayBatchResults(data);
+                    updateStats();
+                } else {
+                    document.getElementById('batchResults').innerHTML = `<p style="color:red"> Error: ${data.error || 'Unknown'}</p>`;
+                }
+            } catch (err) {
+                document.getElementById('batchResults').innerHTML = `<p style="color:red"> Error: ${err.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Analyze Batch';
+                setTimeout(() => progressContainer.style.display = 'none', 2000);
+            }
+        }
+
+        function getRiskBadgeClass(severity) {
+            const classes = { 'CRITICAL': 'risk-critical', 'HIGH': 'risk-high', 'MEDIUM': 'risk-medium', 'LOW': 'risk-low', 'MINIMAL': 'risk-minimal' };
+            return classes[severity] || 'risk-medium';
+        }
+
+        function getStatusBadgeClass(status) {
+            const classes = { 'approved': 'status-approved', 'rejected': 'status-rejected', 'review': 'status-review', 'error': 'status-error' };
+            return classes[status] || 'status-error';
+        }
+
+        function displayBatchStats(data) {
+            const results = data.results;
+            // CORRECTION : Compter via item.result.status
+            const approved = results.filter(item => item.result && item.result.status === 'approved').length;
+            const rejected = results.filter(item => item.result && item.result.status === 'rejected').length;
+            const statsDiv = document.getElementById('batchStats');
+            statsDiv.innerHTML = `
+                <div class="batch-stats">
+                    <div class="batch-stat">
+                        <div class="batch-stat-value">${approved}</div>
+                        <div class="batch-stat-label">Total Approved</div>
+                    </div>
+                    <div class="batch-stat">
+                        <div class="batch-stat-value">${rejected}</div>
+                        <div class="batch-stat-label">Total Rejected</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayBatchResults(data) {
+            const results = data.results;
+            const resultsDiv = document.getElementById('batchResults');
+            let html = '<div class="results-table"><table><thead><tr>';
+            html += '<th>File</th><th>Status</th><th>Confidence</th>';
+            html += '<th>Real</th><th>Fake</th><th>Risk</th><th>Recommendation</th>';
+            html += '</tr></thead><tbody>';
+
+            // CORRECTION : Parcourir data.results et accéder à item.result
+            results.forEach(item => {
+                const r = item.result;  // IMPORTANT : r est maintenant item.result
+
+                if (!r) return; // Skip si pas de résultat
+
+                const statusClass = getStatusBadgeClass(r.status);
+                const statusText = r.status === 'approved' ? ' Approved' :
+                                  r.status === 'rejected' ? ' Rejected' :
+                                  r.status === 'review' ? ' To Review' : 'Error';
+
+                html += '<tr>';
+                html += `<td><span class="image-name" title="${r.filename}">${r.filename}</span></td>`;
+                html += `<td><span class="status-badge ${statusClass}">${statusText}</span></td>`;
+                html += `<td>${r.confidence || 0}%</td>`;
+                html += `<td>${r.prob_real || 0}%</td>`;
+                html += `<td>${r.prob_fake || 0}%</td>`;
+
+                if (r.risk_assessment) {
+                    html += `<td><span class="risk-badge ${getRiskBadgeClass(r.risk_assessment.severity)}">${r.risk_assessment.severity}</span></td>`;
+                    html += `<td>${r.risk_assessment.recommendation || 'N/A'}</td>`;
+                } else {
+                    html += `<td>N/A</td><td>N/A</td>`;
+                }
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        // Génération multiple
+        const taskIds = [];
+
+        async function startGenerate() {
+            const prompt = document.getElementById("prompt").value.trim();
+            const count = parseInt(document.getElementById("imageCount").value);
+
+            if (!prompt) {
+                alert("Please enter a prompt!");
+                return;
+            }
+
+            const output = document.getElementById("generationOutput");
+            output.innerHTML = `<div class="progress-info">Submitting ${count} generation task(s)...</div>`;
+
+            const endpoint = count === 1 ? "/generate" : "/generate/batch";
+            const body = count === 1 ? JSON.stringify({ prompt }) : JSON.stringify({ prompt, count });
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: body
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    output.innerHTML = `<p style="color: red;">Error: ${data.error || "Unknown error"}</p>`;
+                    return;
+                }
+
+                taskIds.length = 0;
+                if (count === 1) taskIds.push(data.task_id);
+                else taskIds.push(...data.task_ids);
+
+                pollAllStatuses();
+            } catch (err) {
+                output.innerHTML = `<p style="color: red;">Network error: ${err.message}</p>`;
+            }
+        }
+
+        function pollAllStatuses() {
+            const output = document.getElementById("generationOutput");
+            const completed = new Set();
+            const images = {};
+
+            const interval = setInterval(async () => {
+                let allDone = true;
+                let processing = 0;
+
+                for (const taskId of taskIds) {
+                    if (completed.has(taskId)) continue;
+
+                    try {
+                        const resp = await fetch(`/generate/status/${taskId}`);
+                        const data = await resp.json();
+
+                        if (data.status === "completed") {
+                            completed.add(taskId);
+                            images[taskId] = data.filename;
+                        } else if (data.status === "processing" || data.status === "pending") {
+                            allDone = false;
+                            if (data.status === "processing") processing++;
+                        } else if (data.status === "failed") {
+                            allDone = false;
+                            images[taskId] = { error: data.error || "Failed" };
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
+
+                output.innerHTML = `
+                    <div class="progress-info">
+                        <strong>${completed.size}</strong> / <strong>${taskIds.length}</strong> images completed
+                        ${processing > 0 ? `<br>${processing} currently generating...` : '<br>Waiting for server...'}
+                    </div>
+                `;
+
+                if (allDone) {
+                    clearInterval(interval);
+                    displayResults(images);
+                    updateStats();
+                }
+            }, 2000);
+        }
+
+        function displayResults(images) {
+            const output = document.getElementById("generationOutput");
+            let html = `<h3>${taskIds.length > 1 ? 'Generated Images' : 'Generated Image'}:</h3><div class="image-grid">`;
+
+            taskIds.forEach(taskId => {
+                if (images[taskId] && !images[taskId].error) {
+                    const filename = images[taskId];
+                    html += `<div class="image-item"><img src="/generated/${filename}?t=${Date.now()}" alt="Generated image" /></div>`;
+                } else {
+                    const error = images[taskId]?.error || "Unknown error";
+                    html += `<div class="image-item" style="color: red; text-align: center; padding: 30px; background: #fee; border-radius: 12px;">
+                        <p><strong>Generation Failed</strong></p><small>${error}</small></div>`;
+                }
+            });
+
+            html += `</div>`;
+            output.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

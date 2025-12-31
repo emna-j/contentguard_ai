@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Generation - ContentGuard AI</title>
+    <style>
+        body { font-family: Arial; background: #f5f5f5; padding: 30px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        textarea { width: 100%; height: 120px; padding: 15px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+        .buttons { margin: 20px 0; display: flex; gap: 15px; }
+        button { padding: 12px 24px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-single { background: #4f46e5; color: white; }
+        .btn-batch { background: #7c3aed; color: white; }
+        button:hover { opacity: 0.9; }
+        #output { margin-top: 30px; }
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .image-item img { width: 100%; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .progress { margin: 10px 0; font-size: 14px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Génération d'images avec Stable Diffusion XL</h2>
+        <label><strong>Prompt :</strong></label><br>
+        <textarea id="prompt" placeholder="Décrivez l'image que vous souhaitez générer..."></textarea><br><br>
+
+        <div class="buttons">
+            <button class="btn-single" onclick="startGenerate(1)">Générer 1 image</button>
+            <button class="btn-batch" onclick="startGenerate(4)">Générer 4 images</button>
+        </div>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const taskIds = [];
+
+        async function startGenerate(count) {
+            const prompt = document.getElementById("prompt").value.trim();
+            if (!prompt) {
+                alert("Veuillez entrer un prompt !");
+                return;
+            }
+
+            const output = document.getElementById("output");
+            output.innerHTML = `<p>Génération de ${count} image(s) en cours...</p><div class="progress">Soumission des tâches...</div>`;
+
+            const endpoint = count === 1 ? "/generate" : "/generate/batch";
+            const body = count === 1
+                ? JSON.stringify({ prompt })
+                : JSON.stringify({ prompt, count });
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: body
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    output.innerHTML += `<p style="color:red">Erreur: ${data.error}</p>`;
+                    return;
+                }
+
+                taskIds.length = 0; // reset
+                if (count === 1) {
+                    taskIds.push(data.task_id);
+                } else {
+                    taskIds.push(...data.task_ids);
+                }
+
+                pollAllStatuses();
+            } catch (err) {
+                output.innerHTML += `<p style="color:red">Erreur: ${err.message}</p>`;
+            }
+        }
+
+        function pollAllStatuses() {
+            const output = document.getElementById("output");
+            const completed = new Set();
+            const images = {};
+
+            const interval = setInterval(async () => {
+                let allDone = true;
+                let processingCount = 0;
+
+                for (const taskId of taskIds) {
+                    if (completed.has(taskId)) continue;
+
+                    try {
+                        const resp = await fetch(`/generate/status/${taskId}`);
+                        const data = await resp.json();
+
+                        if (data.status === "completed") {
+                            completed.add(taskId);
+                            images[taskId] = data.filename;
+                        } else if (data.status === "processing" || data.status === "pending") {
+                            allDone = false;
+                            if (data.status === "processing") processingCount++;
+                        } else if (data.status === "failed") {
+                            allDone = false;
+                            images[taskId] = { error: data.error || "Échec" };
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
+
+                // Mise à jour de l'affichage
+                output.innerHTML = `
+                    <p><strong>${completed.size}</strong> sur <strong>${taskIds.length}</strong> terminées</p>
+                    <div class="progress">${processingCount > 0 ? `${processingCount} en cours de génération...` : 'En attente...'}</div>
+                `;
+
+                if (allDone) {
+                    clearInterval(interval);
+                    displayResults(images);
+                }
+            }, 2000);
+        }
+
+        function displayResults(images) {
+            const output = document.getElementById("output");
+            let html = `<h3>Résultat${taskIds.length > 1 ? 's' : ''} :</h3><div class="image-grid">`;
+
+            for (const taskId of taskIds) {
+                if (images[taskId] && !images[taskId].error) {
+                    const filename = images[taskId];
+                    html += `
+                        <div class="image-item">
+                            <img src="/generated/${filename}?t=${Date.now()}" alt="Image générée" />
+                        </div>
+                    `;
+                } else {
+                    const error = images[taskId]?.error || "Erreur inconnue";
+                    html += `
+                        <div class="image-item" style="color:red; text-align:center; padding:20px;">
+                            <p>Échec de génération</p>
+                            <small>${error}</small>
+                        </div>
+                    `;
+                }
+            }
+
+            html += `</div>`;
+            output.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
